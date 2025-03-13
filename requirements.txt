@@ -1,0 +1,4 @@
+fastapi~=0.112.2
+pydantic~=2.10.3
+psycopg2~=2.9.10
+uvicorn~=0.20.0

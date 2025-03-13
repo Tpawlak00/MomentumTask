@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    depends_on:
+      - db
+    env_file:
+      - configs/.env
+    ports:
+      - "8000:8000"
+    networks:
+      - my_network
+    restart: always
+
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=mydatabase
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - my_network
+    ports:
+      - "5432:5432"
+
+networks:
+  my_network:
+
+volumes:
+  pgdata:
