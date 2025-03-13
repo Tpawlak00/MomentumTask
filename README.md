@@ -13,8 +13,8 @@ Aby uruchomić aplikację lokalnie, upewnij się, że masz zainstalowane:
 
 1. **Sklonuj repozytorium** (jeśli jeszcze go nie masz):
    ```bash
-   git clone https://github.com/twoje-repozytorium.git
-   cd twoje-repozytorium
+   git clone https://github.com/Tpawlak00/MomentumTask.git
+   cd MomentumTask
    ```
 
 2. **Uruchom kontener z aplikacją:**
@@ -120,10 +120,4 @@ Aby uruchomić aplikację lokalnie, upewnij się, że masz zainstalowane:
 - Każda książka może być tylko **raz dodana** – unikalność numeru seryjnego jest wymagana.
 - Jeśli książka jest oznaczona jako wypożyczona, wymagane jest **ID użytkownika oraz data wypożyczenia**.
 
-## 📄 Licencja
-Projekt jest udostępniony na warunkach licencji MIT.
-
----
-
-Teraz możesz używać Library API! 🎉
 
