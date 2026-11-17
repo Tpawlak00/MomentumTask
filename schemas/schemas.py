@@ -1,20 +1,40 @@
-from pydantic import BaseModel, Field
-from typing import Optional
 from datetime import datetime
+from typing import Annotated
 
-class BookCreateRequest(BaseModel):
-    serial_num: int = Field(..., example=123456, description="Unikalny 6-cyfrowy numer seryjny książki")
-    title: str = Field(..., example="Władca Pierścieni", description="Tytuł książki")
-    author: str = Field(..., example="J.R.R. Tolkien", description="Autor książki")
-    is_borrowed: bool = Field(default=False, example=False, description="Czy książka jest wypożyczona")
-    borrowed_by: Optional[int] = Field(default=None, example=100100, description="ID użytkownika wypożyczającego (6 cyfr)")
-    borrowed_at: Optional[datetime] = Field(default=None, example="2024-03-13T10:00:00", description="Data wypożyczenia")
+from pydantic import BaseModel, ConfigDict, StringConstraints
 
-class BookUpdateRequest(BaseModel):
-    serial_num: int = Field(..., example=123456, description="Unikalny 6-cyfrowy numer seryjny książki")
-    is_borrowed: bool = Field(..., example=True, description="Czy książka jest wypożyczona")
-    borrowed_by: Optional[int] = Field(default=None, example=100100, description="ID użytkownika wypożyczającego (6 cyfr)")
-    borrowed_at: Optional[datetime] = Field(default=None, example="2024-03-13T10:00:00", description="Data wypożyczenia")
+Identifier = Annotated[str, StringConstraints(pattern=r"^[0-9]{6}$", min_length=6, max_length=6)]
+BookText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
 
-class ErrorResponse(BaseModel):
-    detail: str = Field(..., example="Opis błędu")
+
+class RequestModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class BookCreateRequest(RequestModel):
+    serial_num: Identifier
+    title: BookText
+    author: BookText
+
+
+class BorrowRequest(RequestModel):
+    borrowed_by: Identifier
+
+
+class BookResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    serial_num: Identifier
+    title: str
+    author: str
+    is_borrowed: bool
+    borrowed_by: Identifier | None
+    borrowed_at: datetime | None
+
+
+class BookPage(BaseModel):
+    items: list[BookResponse]
+    total: int
+    limit: int
+    offset: int

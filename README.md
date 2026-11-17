@@ -1,123 +1,142 @@
-# 📚 MOMENTUM - ZADANIE REKRUTACYJNE
+# Momentum Library
 
-Aplikacja do zarządzania katalogiem książek w bibliotece, napisana w FastAPI.
-Umożliwia dodawanie, usuwanie i aktualizowanie książek oraz ich statusów wypożyczenia.
+Rozwiązanie zadania rekrutacyjnego ML Engineer: API dla pracowników biblioteki
+do dodawania, usuwania i przeglądania książek oraz obsługi wypożyczeń i zwrotów.
+Uwierzytelnianie i autoryzacja są pominięte zgodnie z treścią zadania.
 
-## 🛠 Wymagania wstępne
+Stos: Python 3.13 w Dockerze, FastAPI, Pydantic 2, SQLAlchemy 2,
+PostgreSQL 18, Alembic i Poetry. Lokalnie wymagany jest Python 3.11+.
 
-Aby uruchomić aplikację lokalnie, upewnij się, że masz zainstalowane:
-- **Docker** oraz **Docker Compose**
-- **Python 3.11+** (jeśli chcesz uruchomić lokalnie bez Dockera)
+## Uruchomienie
 
-## 🚀 Uruchamianie aplikacji za pomocą Docker Compose
+Wymagane: Docker z uruchomionym silnikiem i Docker Compose v2.
+Porty 8000 i 5432 muszą być wolne.
 
-1. **Sklonuj repozytorium** (jeśli jeszcze go nie masz):
-   ```bash
-   git clone https://github.com/Tpawlak00/MomentumTask.git
-   cd MomentumTask
-   ```
+```sh
+git clone https://github.com/Tpawlak00/MomentumTask.git
+cd MomentumTask
+docker compose up
+```
 
-2. **Uruchom kontener z aplikacją:**
-   ```bash
-   docker-compose up --build
-   ```
+Nie trzeba instalować Pythona ani tworzyć `.env`. Compose buduje obraz,
+czeka na gotowość PostgreSQL, wykonuje migracje i uruchamia API.
 
-3. **Aplikacja powinna działać pod adresem:**
-   - **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
-   - **Redoc:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+- Kontrola działania procesu API: http://localhost:8000/
 
-4. Aby zatrzymać kontener, użyj:
-   ```bash
-   docker-compose down
-   ```
+Zatrzymanie: `docker compose down`. Dane pozostają w wolumenie `pgdata18`.
+`docker compose down --volumes` usuwa również dane.
+Po zmianach kodu uruchom `docker compose up --build`.
+Przykładowe dane dostępowe w Compose służą do lokalnego uruchomienia.
+Logi są dostępne przez `docker compose logs app`.
 
-## 📜 Endpointy API
+## API
 
-### 1️⃣ Sprawdzenie działania API
-- **GET** `/books/am-i-working`
-- **Opis:** Sprawdza, czy API działa poprawnie.
-- **Przykładowa odpowiedź:**
-  ```json
-  { "message": "Yes, /book works" }
-  ```
+| Metoda | URL | Operacja | Sukces |
+|---|---|---|---|
+| GET | `/books/?limit=20&offset=0` | Lista książek | 200 |
+| POST | `/books/` | Dodanie dostępnej książki | 201 |
+| GET | `/books/{serial_num}` | Pobranie jednej książki | 200 |
+| DELETE | `/books/{serial_num}` | Usunięcie książki, również wypożyczonej | 204 |
+| POST | `/books/{serial_num}/borrow` | Wypożyczenie | 200 |
+| POST | `/books/{serial_num}/return` | Zwrot, bez body | 200 |
 
-### 2️⃣ Pobranie wszystkich książek
-- **GET** `/books/`
-- **Opis:** Pobiera listę wszystkich książek w bazie.
-- **Przykładowa odpowiedź:**
-  ```json
-  [
-    {
-      "serial_num": 123456,
-      "title": "Władca Pierścieni",
-      "author": "J.R.R. Tolkien",
-      "is_borrowed": false,
-      "borrowed_by": null,
-      "borrowed_at": null
-    }
-  ]
-  ```
+Dodanie przez `POST /books/`:
 
-### 3️⃣ Dodanie nowej książki
-- **POST** `/books/`
-- **Opis:** Dodaje nową książkę do systemu.
-- **Body (JSON):**
-  ```json
-  {
-    "serial_num": 123456,
-    "title": "Władca Pierścieni",
-    "author": "J.R.R. Tolkien",
-    "is_borrowed": false
-  }
-  ```
-- **Kody błędów:**
-  - `401` - Niepoprawny format numeru seryjnego (powinno być 6 cyfr).
-  - `402` - Książka już istnieje w bazie.
+```json
+{"serial_num": "001234", "title": "Diuna", "author": "Frank Herbert"}
+```
 
-### 4️⃣ Usunięcie książki
-- **DELETE** `/books/{serial_num}`
-- **Opis:** Usuwa książkę z systemu na podstawie numeru seryjnego.
-- **Kody błędów:**
-  - `411` - Niepoprawny format numeru seryjnego.
-  - `412` - Książka nie istnieje w bazie.
+Wypożyczenie przez `POST /books/001234/borrow`:
 
-### 5️⃣ Aktualizacja książki
-- **PUT** `/books/`
-- **Opis:** Aktualizuje status wypożyczenia książki.
-- **Body (JSON):**
-  ```json
-  {
-    "serial_num": 123456,
-    "is_borrowed": true,
-    "borrowed_by": 100100,
-    "borrowed_at": "2024-03-13T10:00:00"
-  }
-  ```
-- **Kody błędów:**
-  - `401` - Niepoprawny format numeru seryjnego.
-  - `403` - Brak ID użytkownika przy wypożyczonej książce.
-  - `405` - Brak daty wypożyczenia.
-  - `412` - Książka nie istnieje w bazie.
+```json
+{"borrowed_by": "000123"}
+```
 
-## 🛠 Uruchamianie aplikacji lokalnie (bez Dockera)
+Dodanie, wypożyczenie i zwrot zwracają pełny obiekt książki:
 
-1. **Zainstaluj wymagane zależności:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+```json
+{
+  "id": 1,
+  "serial_num": "001234",
+  "title": "Diuna",
+  "author": "Frank Herbert",
+  "is_borrowed": true,
+  "borrowed_by": "000123",
+  "borrowed_at": "2026-11-17T10:00:00Z"
+}
+```
 
-2. **Uruchom aplikację:**
-   ```bash
-   uvicorn main:app --reload
-   ```
+Numery książek i kart bibliotecznych są tekstem zawierającym dokładnie sześć
+cyfr ASCII, co zachowuje zera wiodące. Tytuł i autor mają 1–255 znaków po
+usunięciu otaczających białych znaków. Nieznane pola wejściowe są odrzucane.
+Serwer ustala stan wypożyczenia i datę UTC. Zwrot ustawia `is_borrowed=false`
+oraz czyści `borrowed_by` i `borrowed_at`. Przechowywane jest aktualne
+wypożyczenie, bez historii.
 
-3. **API będzie dostępne pod adresem:**
-   - **Swagger UI:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-   - **Redoc:** [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+Lista ma postać `{"items": [], "total": 0, "limit": 20, "offset": 0}`.
+Kolejne strony pobiera się przez zwiększanie `offset`; `limit` ma zakres
+1–100, `offset` jest nieujemny. Książki są uporządkowane rosnąco po `id`.
 
-## 📌 Uwagi
-- Wszystkie numery seryjne i ID użytkowników powinny mieć dokładnie **6 cyfr**.
-- Każda książka może być tylko **raz dodana** – unikalność numeru seryjnego jest wymagana.
-- Jeśli książka jest oznaczona jako wypożyczona, wymagane jest **ID użytkownika oraz data wypożyczenia**.
+Błędy: `422` dla niepoprawnych danych, `404` dla nieistniejącej książki,
+`409` dla duplikatu numeru, ponownego wypożyczenia lub zwrotu dostępnej książki.
+Unikalność numeru wymusza baza. Warunkowy atomowy UPDATE zapobiega nadpisaniu
+czytelnika przez równoczesne żądanie wypożyczenia.
 
+## Praca lokalna
 
+Wymagane: Python 3.11+ i Poetry 2.2.1.
+
+```sh
+docker compose up -d db
+poetry install
+```
+
+Skopiuj `.env.example` do `.env` i ustaw `DATABASE_URL`, następnie:
+
+```sh
+poetry run alembic upgrade head
+poetry run uvicorn main:app --reload
+```
+
+Zależności są w `pyproject.toml` i `poetry.lock`. Migracje zastępują inicjalizację
+schematu przy starcie aplikacji. Instrukcja aktualizacji starej bazy i API:
+[docs/migrations.md](docs/migrations.md).
+
+## Testy
+
+Po `poetry install` testy API i migracji na izolowanych bazach SQLite:
+
+```sh
+poetry run pytest -m "not postgres"
+```
+
+Testy PostgreSQL obejmują migrację starego rekordu, zgodność schematu z ORM,
+przepływ HTTP, równoczesne dodawanie i wypożyczanie oraz odpowiedzi przy
+zwrocie lub usunięciu książki przez inną transakcję.
+
+Uruchom osobną bazę testową i poczekaj, aż `pg_isready` potwierdzi gotowość:
+
+```sh
+docker run --rm -d --name momentum-test-db -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=momentum_test -p 127.0.0.1:55432:5432 postgres:18
+docker exec momentum-test-db pg_isready -U test -d momentum_test
+```
+
+PowerShell:
+
+```powershell
+$env:TEST_DATABASE_URL = "postgresql+psycopg://test:test@127.0.0.1:55432/momentum_test"
+poetry run pytest
+```
+
+Bash:
+
+```sh
+TEST_DATABASE_URL=postgresql+psycopg://test:test@127.0.0.1:55432/momentum_test poetry run pytest
+```
+
+`TEST_DATABASE_URL` musi wskazywać pustą, jednorazową bazę. Testy odmawiają
+uruchomienia, jeśli zawiera tabele; po każdym teście usuwają utworzone obiekty.
+Bez tej zmiennej testy PostgreSQL są pomijane. CI uruchamia cały zestaw
+z PostgreSQL 18. Po testach zatrzymaj bazę przez `docker stop momentum-test-db`.
